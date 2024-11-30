@@ -1,0 +1,188 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+On charge les bibliothèques nécessaires.
+
+```{r}
+rm(list = ls())
+graphics.off()
+gc()  # Nettoie la mémoire
+library(epca) #pour le jeu de donnée
+#library(elasticnet) #pour le deuxieme jeu de donnée (on veut etre plus proche des resultats de l'article)
+library(glmnet)  # Pour l'Elastic Net
+library(rsvd)    # Pour la SVD
+library(expm)  # Pour la racine carrée matricielle
+```
+
+```{r}
+# Charger le jeu de données pitprops
+#Un jeu de donnée qui correspond a une matrice de correlation pour un échantillon de 180 individu et 13 variables. 
+data("pitprops")
+
+# Afficher un aperçu
+pitprops
+```
+
+```{r}
+#On commence par effectuer une pca classique, on regarde les vecteurs propres de la matrice de correlation 
+cor_matrix = pitprops
+pca_result <- eigen(cor_matrix) #valeur propre 
+values <- pca_result$values  # Les valeurs propres
+values = values/13 * 100
+vectors <- pca_result$vectors  # Les vecteurs propres
+
+```
+
+```{r}
+# Afficher les valeurs propres
+print(values[1:6])
+# Afficher les vecteurs propres (composantes principales)
+print(vectors[,1:6])
+# On profite de cela pour comparer avec les resultats de l'article sur le jeu de donnée 
+```
+On retrouve les memes vecteurs propres et variance que pour la PCA de l'article
+
+```{r}
+#On passe a l'algorithme 1 pour la sparse PCA
+# Étape 1 :Initialisation 
+
+pca_result <- eigen(cor_matrix)  # Décomposition propre
+vectors <- pca_result$vectors  # Vecteurs propres
+
+# Sélection des 6 premiers vecteurs propres
+A <- vectors[, 1:6]  
+
+sqrt_cov <- sqrtm(cor_matrix)  # Racine carrée matricielle
+lambda1 <- c(0.0388, 0.14, 0.06, 0.2, 0.15, 0.12)  # Valeurs spécifiques pour chaque composante
+k <- 6 # Nombre de composantes principales à traiter
+X <- cor_matrix  # Utilisation de la matrice de corrélation
+B <- matrix(0, nrow = ncol(X), ncol = k)  # Matrice pour les coefficients β
+tol <- 1e-7  # Tolérance pour la convergence
+max_iter <- 1000  # Nombre maximum d'itérations
+converged <- FALSE  # Indicateur de convergence
+iter <- 0
+
+while (!converged && iter < max_iter) { #on repete etape 2 et 3 jusqu'a convergence
+  iter <- iter + 1
+  B_prev <- B  # Sauvegarder les valeurs précédentes de B
+  A_prev = A 
+  for (j in 1:k) { 
+    # Etape 2 on calcule B avec elastic Net pour A fixé
+    alpha_j <- A[, j]  # Composante principale actuelle
+    
+    # Transformation pour X* et Y*
+    X_etoile <- sqrt_cov  # X* = sqrt(cov_matrix)
+    y_etoile <- X_etoile %*% alpha_j  # Y* = X* %*% alpha_j
+    
+    # Ajuster le modèle Elastic Net
+    elastic_net <- glmnet(X_etoile, y_etoile, alpha = 1, lambda = lambda1[j], intercept = FALSE)
+    
+    # Extraire les coefficients
+    B[, j] <- coef(elastic_net, s = 0)[-1]  # Retirer l'interception
+  }
+  # Étape 3 : Mise à jour de A pour B fixé
+  svd_result <- rsvd(cor_matrix%*%B)
+  U <- svd_result$u
+  D <- diag(svd_result$d) # Valeurs singulières sous forme de matrice diagonale
+  V <- svd_result$v
+  A <- U %*% t(V)
+
+  #  Vérifier la convergence
+  diff_B <- max(abs(B - B_prev))  # Différence maximale entre B et B_prev
+  diff_A <- max(abs(A - A_prev))  # Différence maximale entre A et A_prev
+  
+  # Convergence si les différences sont sous la tolérance pour B et A
+  if (diff_B < tol && diff_A < tol) {
+    converged <- TRUE
+  }
+  
+}
+
+if (converged) {
+  cat("Convergence atteinte après", iter, "itérations.\n")
+} else {
+  cat("L'algorithme n'a pas convergé après", max_iter, "itérations.\n")
+}
+
+# Étape 4 : Normalisation des coefficients
+for (j in 1:k) {
+  B[, j] <- B[, j] / sqrt(sum(B[, j]^2)+ 1e-8)  # Normalisation des colonnes de B
+}
+
+# Résultat final
+print(B)
+```
+```{r}
+# calcule de la variance pour comparer avec les resultats de l'article
+A <- cor_matrix
+V = B 
+
+# Trace de la matrice
+trace_A <- sum(diag(A))
+
+# Calculer la variance expliquée par chaque vecteur propre (colonne de V)
+explained_variance <- apply(V, 2, function(v) {
+  v <- v / sqrt(sum(v^2))  # Normalisation
+  t(v) %*% A %*% v / trace_A  # Formule
+})
+
+# Résultat
+explained_variance
+```
+On obtient à peu de choses près les mêmes variances que celles de la Table 3 de l'article.
+(penser a recompiler B ici)
+
+
+```{r}
+cor_matrix 
+```
+```{r}
+B
+```
+
+
+
+
+```{r}
+# Exemple de blanchiment manuel
+# Initialize adjusted variance array
+
+Z =  cor_matrix%*%B 
+qr_decomp <- qr(Z)
+
+# Extraction de la matrice Q (matrice orthogonale)
+Q <- qr.Q(qr_decomp)
+
+# Extraction de la matrice R (matrice triangulaire supérieure)
+R <- qr.R(qr_decomp)
+
+# Afficher les résultats
+cat("Matrice Q :\n")
+print(Q)
+
+cat("Matrice R :\n")
+print(R)
+
+
+``` 
+```{r}
+A <- cor_matrix
+V = Q^2
+
+# Trace de la matrice
+trace_A <- sum(diag(A))
+
+# Calculer la variance expliquée par chaque vecteur propre (colonne de V)
+explained_variance <- apply(V, 2, function(v) {
+  v <- v / sqrt(sum(v^2))  # Normalisation
+  t(v) %*% A %*% v / trace_A  # Formule
+})
+
+# Résultat
+explained_variance
+```
+
+
+
