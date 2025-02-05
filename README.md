@@ -10,7 +10,7 @@ L’**Analyse en Composantes Principales** (ACP) est une méthode bien connue po
 
 L’**Analyse en Composantes Principales Parcimonieuse** (SPCA) résout ce problème en imposant une contrainte de parcimonie sur les composantes principales. Cela permet  d’améliorer l’interprétation des composantes en réduisant le nombre de variables contributives.
 
-Les algorithmes SPCA s’appuient sur la régularisation Elastic Net, qui combine des pénalités \( l_1 \) (lasso) et \( l_2 \) (ridge) pour obtenir un équilibre entre parcimonie et stabilité.
+Les algorithmes SPCA s’appuient sur la régularisation Elastic Net, qui combine des pénalités $l_1$ (lasso) et $l_2$ (ridge) pour obtenir un équilibre entre parcimonie et stabilité.
 
 ---
 
@@ -18,11 +18,11 @@ Les algorithmes SPCA s’appuient sur la régularisation Elastic Net, qui combin
 
 Le dépôt contient les implémentations des deux algorithmes de SPCA présentés dans l'article, adaptés à différents types de données :  
 
-1. **Cas \( N > P \)** : Lorsque le nombre d'individus (\( N \)) est supérieur au nombre de variables (\( P \)).  
+1. **Cas  $N > P$** : Lorsque le nombre d'individus ($N$) est supérieur au nombre de variables ($P$).  
    - Fichier : `algo_N>P.R`
    - Exemple : Analyse classique de données multidimensionnelles.
 
-2. **Cas \( P > N \)** : Lorsque le nombre de variables (\( P \)) est supérieur au nombre d'individus (\( N \)).  
+2. **Cas $P > N$ : Lorsque le nombre de variables ($P$) est supérieur au nombre d'individus ($N$).  
    - Fichier : `SPCA_P>N.R`
    - Exemple : Analyse de données génomiques (ex. : étude de gènes).
 
