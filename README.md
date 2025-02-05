@@ -22,7 +22,7 @@ Le dépôt contient les implémentations des deux algorithmes de SPCA présenté
    - Fichier : `algo_N>P.R`
    - Exemple : Analyse classique de données multidimensionnelles.
 
-2. **Cas $P > N$ : Lorsque le nombre de variables ($P$) est supérieur au nombre d'individus ($N$).  
+2. **Cas $P > N$**: Lorsque le nombre de variables ($P$) est supérieur au nombre d'individus ($N$).  
    - Fichier : `SPCA_P>N.R`
    - Exemple : Analyse de données génomiques (ex. : étude de gènes).
 
